@@ -1,0 +1,75 @@
+**singleton** - settings
+
+**object pool** - pool of graphical objects <--
+
+**lazy init** - creating user prototypes
+
+**factory method** - army
+
+**abstract factory** - component kits of a different armies <--
+
+**prototype** - clone & push army
+
+**builder** - create army
+
+**adapter** - GG
+
+**decorator** - squire <--
+
+**facade** - game manager (full service layer) <--
+
+**proxy** - log & lazy <--
+
+**composite** - ?
+
+**bridge** - ?
+
+**command** - action manager // history is a two-dimensional array <--
+
+**strategy** - different types of battle <--
+
+- Get Army Info
+- Start game (in: 2 armies)
+- Next step, Undo, Redo
+- Change strategy
+
+3 стратегии
+
+1) ____ X ____
+
+2) ____ X ____
+
+   -- X --   --- X ---
+   -- X --   --- X ---
+   -- X --
+
+3) ____ X ____
+
+    - X -
+    - X -
+    - X -
+    - X -
+    - X -
+    - X -
+
+
+1) server with this API:
+ - Change Config
+ - Get Army Info
+ - Start game (in: 2 armies)
+ - Next step, Undo, Redo
+ - Change strategy
+
+2) front with this API:
+ - Get information about armies from the bek and gather an army
+ - Start the game with the selected armies
+ - Make moves and display all logs (nice)
+ - Draw stats about the game
+
+6) Write down the strategies themselves (reassemble the army and move when dying)
+
+4) Implement commands into the game manager itself
+
+5) Add logging via proxy
+
+7) Remove commands from actions within one turn
