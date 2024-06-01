@@ -1,0 +1,256 @@
+from abc import ABC, abstractmethod
+import random
+
+# Singleton pattern for settings
+class Settings(object):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(Settings, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        self.screen_resolution = (1920, 1080)
+        self.sound_volume = 0.8
+        self.difficulty_level = DifficultyLevel.NORMAL
+
+    def __str__(self):
+        return f"Screen Resolution: {self.screen_resolution}, Sound Volume: {self.sound_volume}, Difficulty Level: {self.difficulty_level}"
+
+
+class DifficultyLevel:
+    EASY = 1
+    NORMAL = 2
+    HARD = 3
+
+
+# Abstract Factory pattern for creating units
+class UnitFactory(ABC):
+    @abstractmethod
+    def create_unit(self, unit_type):
+        pass
+
+
+class HumanUnitFactory(UnitFactory):
+    def create_unit(self, unit_type):
+        if unit_type == "LightSoldier":
+            return LightSoldier(is_enemy=False)
+        elif unit_type == "Magician":
+            return Magician(is_enemy=False)
+        # Add more unit types as needed
+
+
+class EnemyUnitFactory(UnitFactory):
+    def create_unit(self, unit_type):
+        if unit_type == "LightSoldier":
+            return LightSoldier(is_enemy=True)
+        elif unit_type == "Magician":
+            return Magician(is_enemy=True)
+        # Add more unit types as needed
+
+
+# Unit classes
+class Unit(ABC):
+    def __init__(self, is_enemy):
+        self.is_enemy = is_enemy
+        self.hp = 100
+
+    @abstractmethod
+    def attack(self, target):
+        pass
+
+    @abstractmethod
+    def defend(self, damage):
+        pass
+
+    def is_alive(self):
+        return self.hp > 0
+
+
+class LightSoldier(Unit):
+    def __init__(self, is_enemy):
+        super().__init__(is_enemy)
+        self.defense = 50
+        self.close_range_damage = 30
+        self.dodge_chance = 0.5
+
+    def attack(self, target):
+        if random.random() < self.dodge_chance:
+            print("Light Soldier dodged the attack!")
+        else:
+            damage = max(self.close_range_damage - target.defense, 0)
+            target.defend(damage)
+            print(f"Light Soldier dealt {damage} damage to {target.__class__.__name__}")
+
+    def defend(self, damage):
+        self.hp -= damage
+        print(f"Light Soldier took {damage} damage. HP remaining: {self.hp}")
+
+    def heal(self):
+        print("Healing Light Soldier")
+
+
+class Magician(Unit):
+    def __init__(self, is_enemy):
+        super().__init__(is_enemy)
+        self.defense = 30
+        self.close_range_damage = 20
+        self.long_range_damage = 40
+        self.dodge_chance = 0.5
+
+    def attack(self, target):
+        if random.random() < self.dodge_chance:
+            print("Magician dodged the attack!")
+        else:
+            damage = max(self.long_range_damage - target.defense, 0)
+            target.defend(damage)
+            print(f"Magician dealt {damage} damage to {target.__class__.__name__}")
+
+    def defend(self, damage):
+        self.hp -= damage
+        print(f"Magician took {damage} damage. HP remaining: {self.hp}")
+
+
+# Factory Method pattern for creating armies
+class ArmyFactory(ABC):
+    @abstractmethod
+    def create_army(self, unit_factory):
+        pass
+
+
+class HumanArmyFactory(ArmyFactory):
+    def create_army(self, unit_factory):
+        army = []
+        for _ in range(5):
+            army.append(unit_factory.create_unit("LightSoldier"))
+        for _ in range(2):
+            army.append(unit_factory.create_unit("Magician"))
+        return army
+
+
+class EnemyArmyFactory(ArmyFactory):
+    def create_army(self, unit_factory):
+        army = []
+        for _ in range(3):
+            army.append(unit_factory.create_unit("LightSoldier"))
+        for _ in range(4):
+            army.append(unit_factory.create_unit("Magician"))
+        return army
+
+
+# Decorator pattern for adding abilities to units
+class UnitDecorator(Unit):
+    def __init__(self, unit):
+        self.unit = unit
+
+    def attack(self, target):
+        self.unit.attack(target)
+
+    def defend(self, damage):
+        self.unit.defend(damage)
+
+    def is_alive(self):
+        return self.unit.is_alive()
+
+
+class HealingDecorator(UnitDecorator):
+    def __init__(self, unit):
+        super().__init__(unit)
+        self.healing_power = 20
+
+    def heal(self):
+        print(f"Healing {self.unit.__class__.__name__} for {self.healing_power} HP")
+        self.unit.hp += self.healing_power
+
+
+# Game Manager (Facade pattern)
+class GameManager:
+    def __init__(self):
+        self.settings = Settings()
+        self.human_unit_factory = HumanUnitFactory()
+        self.enemy_unit_factory = EnemyUnitFactory()
+        self.human_army_factory = HumanArmyFactory()
+        self.enemy_army_factory = EnemyArmyFactory()
+        self.human_army = self.human_army_factory.create_army(self.human_unit_factory)
+        self.enemy_army = self.enemy_army_factory.create_army(self.enemy_unit_factory)
+
+    def start_game(self):
+        print("Starting game with settings:", self.settings)
+        self.play_game()
+
+    def play_game(self):
+        play_again = True
+        while play_again:
+            self.play_round()
+            play_again = input("Play again? (y/n): ").lower() == 'y'
+
+    def play_round(self):
+        print("\nHuman Army:")
+        for unit in self.human_army:
+            print(unit.__class__.__name__)
+
+        print("\nEnemy Army:")
+        for unit in self.enemy_army:
+            print(unit.__class__.__name__)
+
+        while True:
+            action = input("Press 'f' to fight or 'q' to quit: ").lower()
+            if action == 'q':
+                break
+            elif action == 'f':
+                self.fight()
+            else:
+                print("Invalid input. Please try again.")
+
+    def fight(self):
+        while True:
+            human_unit = self.select_unit(self.human_army, "Select a unit from your army: ")
+            if not human_unit:
+                break
+
+            enemy_unit = self.select_unit(self.enemy_army, "Select an enemy unit to attack: ")
+            if not enemy_unit:
+                break
+
+            if human_unit and enemy_unit:
+                human_unit.attack(enemy_unit)
+                if not enemy_unit.is_alive():
+                    self.enemy_army.remove(enemy_unit)
+                    print(f"{enemy_unit.__class__.__name__} was defeated!")
+
+                if not self.enemy_army:
+                    print("You won the battle!")
+                    break
+
+            if not self.human_army:
+                print("You lost the battle!")
+                break
+
+            healer = self.select_unit(self.human_army, "Select a unit to heal (or press 'q' to skip): ")
+            if healer:
+                healer = HealingDecorator(healer)
+                healer.heal()
+
+    def select_unit(self, army, prompt):
+        while True:
+            print(prompt)
+            for i, unit in enumerate(army, start=1):
+                print(f"{i}. {unit.__class__.__name__} (HP: {unit.hp})")
+            choice = input("Enter the number of your choice or 'q' to quit: ").lower()
+            if choice == 'q':
+                return None
+            try:
+                index = int(choice) - 1
+                if 0 <= index < len(army):
+                    return army[index]
+                else:
+                    print("Invalid choice. Please try again.")
+            except ValueError:
+                print("Invalid input. Please try again.")
+
+
+# Main entry point
+if __name__ == "__main__":
+    game_manager = GameManager()
+    game_manager.start_game()
